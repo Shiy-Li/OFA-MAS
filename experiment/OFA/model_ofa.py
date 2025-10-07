@@ -211,14 +211,7 @@ class OFAModel(nn.Module):
         if unconditional:
             task_embedding = torch.zeros_like(task_embedding)
 
-        if self.args.use_vae:
-            recon_task, z, mu, logvar = self.task_vae(task_embedding)
-            recon_loss = F.mse_loss(recon_task, task_embedding)
-            kld_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1)
-            loss_vae = torch.mean(recon_loss + beta_vae * kld_loss)
-        else:
-            z = self.task_encoder(task_embedding)
-            loss_vae = torch.tensor(0.0, device=device)
+        z = self.task_encoder(task_embedding)
 
         moe_weights = self.moe_gate(z)
         f_k = torch.mean(moe_weights, dim=0)
@@ -344,7 +337,7 @@ class OFAModel(nn.Module):
         avg_loss_gate_l1 = total_loss_gate_l1 / total_node_predictions if total_node_predictions > 0 else 0
         batch_accuracy = (total_correct_predictions / total_node_predictions) * 100 if total_node_predictions > 0 else 0
 
-        return avg_loss_graph, loss_vae, loss_balance, avg_loss_gate_l1, batch_accuracy
+        return avg_loss_graph, loss_balance, avg_loss_gate_l1, batch_accuracy
 
     def sample(self, task_query_embedding, max_nodes=6):
         """
