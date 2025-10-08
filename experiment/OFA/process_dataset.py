@@ -7,17 +7,14 @@ def load_graph_dataset(args):
         sample_size = getattr(args, 'dataset_sample_size', 0)
         dataset = OFAGraphDataset(data_dir=args.data_dir, sample_size=sample_size)
 
-        args.max_prev_node = 3 # Set a higher limit for potentially larger graphs
+        args.max_prev_node = 3
         args.max_head_and_tail = None
         
-        # In this dataset, embeddings are already on the nodes.
-        # We can build the dict for compatibility if needed.
         role_embeddings_dict = {}
         if dataset.graph_list:
             for graph in dataset.graph_list:
                 for _, data in graph.nodes(data=True):
                     if 'role' in data and 'role_embedding' in data:
-                        # Ensure embedding is a tensor
                         embedding = data['role_embedding']
                         if not isinstance(embedding, torch.Tensor):
                             embedding = torch.tensor(embedding)

@@ -32,7 +32,6 @@ async def achat(
         temperature=temperature
     )
 
-    # Calculate cost using the usage information from API response
     if chat_completion.usage:
         prompt_tokens = chat_completion.usage.prompt_tokens
         completion_tokens = chat_completion.usage.completion_tokens

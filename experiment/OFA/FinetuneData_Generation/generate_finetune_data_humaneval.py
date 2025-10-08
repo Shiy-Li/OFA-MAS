@@ -11,7 +11,6 @@ from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
 import torch
 
-# Ensure the project root is in the Python path
 sys.stdout.reconfigure(encoding='utf-8')
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
@@ -20,7 +19,6 @@ from GDesigner.graph.graph import Graph, TestGraph
 from GDesigner.tools.reader.readers import JSONLReader
 from GDesigner.tools.coding.python_executor import PyExecutor
 from experiment.OFA.utils import get_kwargs
-# Use the universal role pool for OFA
 from experiment.OFA.uni_role import ROLE_DESCRIPTION
 
 OUTPUT_DIR = "./Finetune_OFA_humaneval"
@@ -41,19 +39,15 @@ def parse_args():
 
 
 def get_all_classic_configs():
-    """
-    Return a comprehensive list of classic topology configurations,
-    combining simple and complex types from baseline methods for HumanEval.
-    """
     configs = set()
-    for agent_num in range(2, 6):  # HumanEval specific range
+    for agent_num in range(2, 6):
         if agent_num == 2:
             configs.add(('Chain', 2))
         elif agent_num == 3:
             configs.add(('Chain', 3))
             configs.add(('Star', 3))
             configs.add(('FullConnected', 3))
-        else:  # Covers agent_num 4, 5
+        else:
             configs.add(('Chain', agent_num))
             configs.add(('Star', agent_num))
             configs.add(('Layered', agent_num))
@@ -141,13 +135,11 @@ async def evaluate_and_save(
 async def main():
     args = parse_args()
     
-    # The sentence model is needed for encoding questions later anyway.
     print("Initializing sentence model...")
     sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
 
     EMBEDDINGS_CACHE_PATH = os.path.join(os.path.dirname(__file__), '..', 'precomputed_role_embeddings.pkl')
 
-    # Load or compute role embeddings
     if os.path.exists(EMBEDDINGS_CACHE_PATH):
         print(f"Loading cached role embeddings from {EMBEDDINGS_CACHE_PATH}...")
         with open(EMBEDDINGS_CACHE_PATH, 'rb') as f:
@@ -164,7 +156,6 @@ async def main():
 
     dataset = list(JSONLReader.parse_file(args.dataset_json))
 
-    # Use the first N (batch_size * num_iterations) samples for fine-tuning
     train_set_size = args.batch_size * args.num_iterations
     train_set_size = min(train_set_size, len(dataset))
     
@@ -172,7 +163,6 @@ async def main():
     train_indices = all_indices[:train_set_size]
     test_indices = all_indices[train_set_size:]
 
-    # Save the new task split for evaluation consistency
     with open(TASK_SPLIT_FILE, 'w') as f:
         json.dump({
             "train_indices": train_indices,
@@ -195,8 +185,6 @@ async def main():
         available_roles = list(ROLE_DESCRIPTION.keys())
         random_roles = random.choices(available_roles, k=agent_num)
 
-        # Filter kwargs to only pass what the Graph class constructor expects.
-        # The Graph constructor directly accepts 'fixed_spatial_masks'.
         graph_kwargs = {}
         if 'fixed_spatial_masks' in all_kwargs:
             graph_kwargs['fixed_spatial_masks'] = all_kwargs['fixed_spatial_masks']
@@ -225,4 +213,4 @@ async def main():
 if __name__ == "__main__":
     if sys.platform == "win32":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    asyncio.run(main()) 
+    asyncio.run(main())

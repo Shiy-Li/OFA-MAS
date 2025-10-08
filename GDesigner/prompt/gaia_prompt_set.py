@@ -7,28 +7,15 @@ from experiment.OFA.uni_role_ex import ROLE_DESCRIPTION
 @PromptSetRegistry.register('gaia')
 
 class GaiaPromptSet(PromptSet):
-    """
-    GaiaPromptSet provides a collection of static methods to generate prompts
-    for a general AI assistant. These prompts cover various tasks like answering questions,
-    performing web searches, analyzing files, and reflecting on tasks.
-    """
-
-    # @staticmethod
-    # def get_role():
-    #     return next(roles)
 
     @staticmethod
     def get_decision_role():
         return "You are the top decision-maker and are good at analyzing and summarizing other people's opinions, finding errors and giving final answers."
 
-    # def get_role_connection(self):
-    #     return ROLE_CONNECTION
-
     def get_description(self, role):
         return ROLE_DESCRIPTION[role]
     @staticmethod
     def get_constraint():
-        # adapted from the GAIA paper: https://arxiv.org/pdf/2311.12983.pdf
         return (
 "I will ask you a question. Report your thoughts, and finish your answer with the following template: FINAL ANSWER: [YOUR FINAL ANSWER]. "
 "YOUR FINAL ANSWER should be a number OR as few words as possible OR a comma separated list of numbers and/or strings. "
@@ -60,7 +47,6 @@ class GaiaPromptSet(PromptSet):
 
     @staticmethod
     def get_answer_prompt(question):
-        # Format the question for the AI assistant to answer
         return f"{question}"
 
 
@@ -69,11 +55,8 @@ class GaiaPromptSet(PromptSet):
         return (
 "# Information Gathering for Question Resolution\n\n"
 "Evaluate if additional information is needed to answer the question. "
-#"If web search or file analysis is required, formulate specific queries to assist in finding the answer.\n\n"
 "If a web search or file analysis is necessary, outline specific clues or details to be searched for.\n\n"
 f"## ❓ Target Question:\n{question}\n\n"
-# "## 🤔 Information Gathering:\n"
-# "Identify if a web search or file reading is necessary and outline the approach."
 "## 🔍 Clues for Investigation:\n"
 "Identify critical clues and concepts within the question that are essential for finding the answer.\n"
         )
@@ -82,11 +65,6 @@ f"## ❓ Target Question:\n{question}\n\n"
     @staticmethod
     def get_file_analysis_prompt(query, file):
         return (
-            # "# File Analysis Required\n\n"
-            # f"## 🔍 Required Information to Extract:\n---\n{query}\n---\n\n"
-            # f"## 📄 File Content for Analysis:\n---\n{file}\n---\n\n"
-            # "## 🤔 Instructions:\n"
-            # "Extract the specified information from the file. Example: 'Identify the main theme in the text.'"
 "# File Analysis Task\n\n"
 f"## 🔍 Information Extraction Objective:\n---\n{query}\n---\n\n"
 f"## 📄 File Under Analysis:\n---\n{file}\n---\n\n"
@@ -119,12 +97,6 @@ f"## 📄 File Under Analysis:\n---\n{file}\n---\n\n"
     @staticmethod
     def get_distill_websearch_prompt(question, query, results):
         return (
-            # "# Summarization of Search Results\n\n"
-            # "## 🔍 Required Information for Summary:\n---\n{query}\n---\n\n"
-            # "## 🌐 Search Results for Analysis:\n---\n{results}\n---\n\n"
-            # "## ✏️ Instructions:\n"
-            # "Summarize the key findings from the search results related to the query. "
-            # "Focus on relevant information. Example: 'Summary of key points...'"
 "# Summarization of Search Results\n\n"
 f"## Original question: \n---\n{question}\n---\n\n"
 f"## 🔍 Required Information for Summary:\n---\n{query}\n---\n\n"
@@ -153,15 +125,6 @@ f"## 💡 Your Previous Answer:\n---\n{answer}\n---\n\n"
     def get_self_consistency(question: str, answers: list, constraint: str) -> str:
         formatted_answers = "\n".join([f"Answer {index + 1}: {answer}" for index, answer in enumerate(answers)])
         return (
-            # "# Self-Consistency Evaluation Task\n\n"
-            # f"## 🤔 Given Question:\n---\n{question}\n---\n\n"
-            # "## 💡 Available Answers:\n---\n"
-            # f"{formatted_answers}\n"
-            # "---\n\n"
-            # "## ✏️ Instructions:\n"
-            # "Review the given answers and choose the most consistent one. "
-            # "If all answers differ, select the one you find most reliable. "
-            # f"Please keep following the constraints to answer the question: {constraint}."
 "# Self-Consistency Evaluation Task\n\n"
 f"## 🤔 Question for Review:\n---\n{question}\n---\n\n"
 f"## 💡 Reviewable Answers:\n---\n{formatted_answers}\n---\n\n"
@@ -179,15 +142,6 @@ f"6. Adhere to the constraints: {constraint}.\n"
     def get_select_best(question: str, answers: list, constraint: str) -> str:
         formatted_answers = "\n".join([f"Answer {index + 1}: {answer}" for index, answer in enumerate(answers)])
         return (
-            # "# Best Answer Evaluation Task\n\n"
-            # f"## 🤔 Given Question:\n---\n{question}\n---\n\n"
-            # "## 💡 Available Answers:\n---\n"
-            # f"{formatted_answers}\n"
-            # "---\n\n"
-            # "## ✏️ Instructions:\n"
-            # "Review the given question and candidate answers and choose the most reasonable one. "
-            # "Please copy the original answer if you decide."
-            # f"Please keep following the constraints to answer the question: {constraint}."
 "# Best Answer Evaluation Task\n\n"
 f"## 🤔 Question:\n---\n{question}\n---\n\n"
 f"## 💡 Candidate Answers for Evaluation:\n---\n{formatted_answers}\n---\n\n"

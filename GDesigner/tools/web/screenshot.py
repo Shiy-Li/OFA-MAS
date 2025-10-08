@@ -1,8 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-"""
-Ref: https://github.com/abi/screenshot-to-code/blob/main/backend/routes/screenshot.py
-"""
 
 
 import base64

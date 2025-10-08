@@ -11,26 +11,6 @@ from GDesigner.prompt.prompt_set_registry import PromptSetRegistry
 
 
 class Graph(ABC):
-    """
-    A framework for managing and executing a network of nodes using a language model.
-
-    This class enables the creation of a graph structure for processing and analyzing data. Each node
-    in the graph can perform specific operations, allowing for complex data processing workflows.
-    The graph supports integration with language models, making it suitable for tasks that require
-    natural language processing capabilities.
-
-    The communication of the node depends on the node.spatial_predecessors and node.spatial_successors.
-
-    Attributes:
-        domain (str): The domain for which this graph is used.
-        llm_name (str): The name of the llm that used for processing within the nodes.
-        nodes (dict): A collection of nodes, each identified by a unique UUID.
-
-    Methods:
-        build_graph(): Method to be implemented for constructing the graph structure.
-        add_node(node): Adds a new node to the graph with a unique identifier.
-        run(inputs, num_steps=10, single_agent=False): Executes the graph for a specified number of steps, processing provided inputs.
-    """
 
     def __init__(self,
                  domain: str,
@@ -82,9 +62,6 @@ class Graph(ABC):
         return node
 
     def init_nodes(self):
-        """
-        Creates and adds new nodes to the graph.
-        """
         for agent_name, kwargs in zip(self.agent_names, self.node_kwargs):
             if agent_name in AgentRegistry.registry:
                 kwargs["domain"] = self.domain
@@ -93,17 +70,11 @@ class Graph(ABC):
                 self.add_node(agent_instance)
 
     def init_potential_edges(self):
-        """
-        Creates and potential edges to the graph.
-        """
         for node1_id in self.nodes.keys():
             for node2_id in self.nodes.keys():
                 self.potential_spatial_edges.append([node1_id, node2_id])
 
     def clear_spatial_connection(self):
-        """
-        Clear all the spatial connection of the nodes in the graph.
-        """
         for node_id in self.nodes.keys():
             self.nodes[node_id].spatial_predecessors = []
             self.nodes[node_id].spatial_successors = []
@@ -111,7 +82,7 @@ class Graph(ABC):
         self.decision_node.spatial_successors = []
         
     def construct_spatial_connection_all(self, temperature: float = 1.0,
-                                         threshold: float = None, ):  # temperature must >= 1.0
+                                         threshold: float = None, ):
         self.clear_spatial_connection()
 
         for potential_connection, edge_logit, edge_mask in zip(self.potential_spatial_edges, self.spatial_logits,
@@ -273,16 +244,13 @@ class TestGraph(ABC):
             node.update_memory()
 
     def construct_temporal_connection(self, round: int = 0, temperature: float = 1.0,
-                                      threshold: float = None, ):  # temperature must >= 1.0
+                                      threshold: float = None, ):
         self.clear_temporal_connection()
 
         if round == 0:
             return 0
 
     def clear_temporal_connection(self):
-        """
-        Clear all the temporal connection of the nodes in the graph.
-        """
         for node_id in self.nodes.keys():
             self.nodes[node_id].temporal_predecessors = []
             self.nodes[node_id].temporal_successors = []

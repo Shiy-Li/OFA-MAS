@@ -13,10 +13,6 @@ import pickle
 from experiment.OFA.uni_role import ROLE_DESCRIPTION
 
 def pre_compute_role_embeddings(model_name='all-MiniLM-L6-v2', cache_path='precomputed_role_embeddings.pkl'):
-    """
-    Computes embeddings for all role descriptions.
-    Caches the result to a file to avoid re-computation.
-    """
     if os.path.exists(cache_path):
         print(f"Loading pre-computed role embeddings from {cache_path}...")
         with open(cache_path, 'rb') as f:
@@ -38,9 +34,6 @@ def pre_compute_role_embeddings(model_name='all-MiniLM-L6-v2', cache_path='preco
     return role_embeddings
 
 def process_llm_data(input_file, output_dir, role_embeddings, sentence_model):
-    """
-    Processes the JSONL data from LLM, creates graphs, and saves them as .pt files.
-    """
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -48,19 +41,15 @@ def process_llm_data(input_file, output_dir, role_embeddings, sentence_model):
         lines = f.readlines()
 
     print(f"Processing {len(lines)} entries from {input_file}...")
-    # This regex finds a backslash that is NOT followed by a valid JSON escape sequence character.
-    # It then replaces the two-character sequence with just the second character. e.g., "\_" becomes "_"
     invalid_escape_re = re.compile(r'\\([^"\\/bfnrtu])')
 
     for i, line in enumerate(tqdm(lines)):
         try:
-            # Fix for common LLM-generated JSON with invalid escapes
             line_corrected = invalid_escape_re.sub(r'\1', line)
             item = json.loads(line_corrected.strip())
             
             G = nx.DiGraph()
             
-            # Add nodes with role and embedding
             for node_idx, role_name in enumerate(item['roles']):
                 if role_name in role_embeddings:
                     G.add_node(node_idx, role=role_name, role_embedding=role_embeddings[role_name])
@@ -68,7 +57,6 @@ def process_llm_data(input_file, output_dir, role_embeddings, sentence_model):
                     print(f"Warning: Role '{role_name}' not found in pre-computed embeddings. Skipping.")
                     continue
 
-            # Add edges
             if 'edges' in item and item['edges']:
                 edge_list = item['edges'].split()
                 for edge_str in edge_list:
@@ -76,17 +64,12 @@ def process_llm_data(input_file, output_dir, role_embeddings, sentence_model):
                         u, v = map(int, edge_str.split('->'))
                         G.add_edge(u, v)
             
-            # Add graph-level attributes
             G.graph['question'] = item['query']
             G.graph['topology'] = item['topology']
-            # Convert to PyG data object
-            # By removing `group_node_attrs`, from_networkx will preserve the original attribute names
-            # like 'role_embedding' instead of renaming them to 'x'.
             pyg_data = from_networkx(G)
 
             pyg_data.question = sentence_model.encode(item['query'], convert_to_tensor=True)
             
-            # Save the graph
             torch.save(pyg_data, os.path.join(output_dir, f"graph_{i}.pt"))
 
         except json.JSONDecodeError as e:

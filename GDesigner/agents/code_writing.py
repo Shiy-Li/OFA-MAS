@@ -17,8 +17,6 @@ class CodeWriting(Node):
 
 
     def _process_inputs(self, raw_inputs:Dict[str,str], spatial_info:Dict[str,Dict], temporal_info:Dict[str,Dict], **kwargs)->List[Any]:
-        """ To be overriden by the descendant class """
-        """ Process the raw_inputs(most of the time is a List[Dict]) """             
         system_prompt = self.constraint
         spatial_str = ""
         temporal_str = ""
@@ -61,8 +59,6 @@ class CodeWriting(Node):
         return results
     
     def _execute(self, input:Dict[str,str],  spatial_info:Dict[str,Any], temporal_info:Dict[str,Any],**kwargs):
-        """ To be overriden by the descendant class """
-        """ Use the processed input to get the result """
         self.internal_tests = self.extract_example(input)
         system_prompt, user_prompt = self._process_inputs(input, spatial_info, temporal_info)
         message = [{'role':'system','content':system_prompt},{'role':'user','content':user_prompt}]
@@ -70,17 +66,10 @@ class CodeWriting(Node):
         return response
 
     async def _async_execute(self, input:Dict[str,str],  spatial_info:Dict[str,Any], temporal_info:Dict[str,Any],**kwargs):
-        """ To be overriden by the descendant class """
-        """ Use the processed input to get the result """
-        """ The input type of this node is Dict """
         self.internal_tests = self.extract_example(input)
         system_prompt, user_prompt = self._process_inputs(input, spatial_info, temporal_info)
-        ## test
         if system_prompt == "is_solved":
             return user_prompt
         message = [{'role':'system','content':system_prompt},{'role':'user','content':user_prompt}]
         response = await self.llm.agen(message)
-        # print(f"################system prompt:{system_prompt}")
-        # print(f"################user prompt:{user_prompt}")
-        # print(f"################response:{response}")
         return response

@@ -47,13 +47,10 @@ from openai import OpenAI, AsyncOpenAI
 OPENAI_API_KEY=os.getenv("OPENAI_API_KEY")
 
 
-# Refs: https://platform.openai.com/docs/api-reference
-# Refs: https://github.com/Significant-Gravitas/AutoGPT/blob/0e332c0c1221857f3ce96490f073c1c88bcbd367/autogpts/autogpt/autogpt/commands/file_operations_utils.py
-
 class Reader(ABC):
     @abstractmethod
     def parse(self, file_path: Path) -> str:
-        """ To be overriden by the descendant class """
+        pass
 
 
 class TXTReader(Reader):
@@ -86,8 +83,7 @@ class JSONReader(Reader):
         try:
             with open(file_path, "r") as f:
                 data = json.load(f)
-                #text = str(data)
-            return data#text
+            return data
         except:
             return []
     
@@ -106,8 +102,7 @@ class JSONLReader(Reader):
         logger.info(f"Reading JSON Lines file from {file_path}.")
         with open(file_path, "r",encoding='utf-8') as f:
             lines = [json.loads(line) for line in f]
-            #text = '\n'.join([str(line) for line in lines])
-        return lines #text
+        return lines
     
     def parse(file_path: Path) -> str:
         logger.info(f"Reading JSON Lines file from {file_path}.")
@@ -225,7 +220,6 @@ class XLSXReader(Reader):
 
 class ZipReader(Reader):
     def parse(self, file_path: Path) -> str:
-        #only support files that can be represented as text
         logger.info(f"Reading ZIP file from {file_path}.")
         try:
             file_content = ""

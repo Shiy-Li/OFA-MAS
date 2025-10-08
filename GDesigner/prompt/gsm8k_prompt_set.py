@@ -4,44 +4,6 @@ from GDesigner.prompt.prompt_set_registry import PromptSetRegistry
 from GDesigner.prompt.common import get_combine_materials
 from experiment.OFA.uni_role import ROLE_DESCRIPTION
 
-# ROLE_DESCRIPTION = {
-#     "Math Solver": 
-#         "You are a math expert. "
-#         "You will be given a math problem and hints from other agents. "
-#         "Give your own solving process step by step based on hints. "
-#         "The last line of your output contains only the final result without any units, for example: The answer is 140\n"
-#         "You will be given some examples you may refer to.",
-#     "Mathematical Analyst":
-#         "You are a mathematical analyst. "
-#         "You will be given a math problem, analysis and code from other agents. "
-#         "You need to first analyze the problem-solving process step by step, where the variables are represented by letters. "
-#         "Then you substitute the values into the analysis process to perform calculations and get the results."
-#         "The last line of your output contains only the final result without any units, for example: The answer is 140\n"
-#         "You will be given some examples you may refer to.",
-#     "Programming Expert":
-#         "You are a programming expert. "
-#         "You will be given a math problem, analysis and code from other agents. "
-#         "Integrate step-by-step reasoning and Python code to solve math problems. "
-#         "Analyze the question and write functions to solve the problem. "
-#         "The function should not take any arguments and use the final result as the return value. "
-#         "The last line of code calls the function you wrote and assigns the return value to the \(answer\) variable. "
-#         "Use a Python code block to write your response. For example:\n```python\ndef fun():\n x = 10\n y = 20\n return x + y\nanswer = fun()\n```\n"
-#         "Do not include anything other than Python code blocks in your response."
-#         "You will be given some examples you may refer to.",
-#     "Inspector":
-#         "You are an Inspector. "
-#         "You will be given a math problem, analysis and code from other agents. "
-#         "Check whether the logic/calculation of the problem solving and analysis process is correct(if present). "
-#         "Check whether the code corresponds to the solution analysis(if present). "
-#         "Give your own solving process step by step based on hints. "
-#         "The last line of your output contains only the final result without any units, for example: The answer is 140\n"
-#         "You will be given some examples you may refer to.",
-# }
-
-# This function is inspired by/derived from the implementation in the following GitHub repository:
-# Repository: https://github.com/chuanyang-Zheng/Progressive-Hint/blob/main/prompt/complex/complex_PHP_gsm8k.txt
-# Repository: https://github.com/microsoft/ToRA/blob/213c1c995038c73fab10343814df7a42f990f026/src/prompts/tora/gsm8k.md
-# Repository: https://github.com/microsoft/ToRA/blob/213c1c995038c73fab10343814df7a42f990f026/src/prompts/cot/gsm8k.md
 FEW_SHOT_DATA = {
 "Math Solver":
 """
@@ -182,7 +144,6 @@ class GSM8KPromptSet(PromptSet):
 
     @staticmethod
     def get_constraint(role):
-        # print('role', role)
         return ROLE_DESCRIPTION[role]
 
     def get_description(self,role):
@@ -194,7 +155,6 @@ class GSM8KPromptSet(PromptSet):
 
     @staticmethod
     def get_answer_prompt(question,role="Mathematical Analyst"):
-        # Format the question for the AI assistant to answer
         return f"{FEW_SHOT_DATA[role]}\n\nQ:{question}"
 
     @staticmethod
@@ -247,11 +207,8 @@ Rewrite the code based on the feedback and the following question:
         return (
 "# Information Gathering for Question Resolution\n\n"
 "Evaluate if additional information is needed to answer the question. "
-#"If web search or file analysis is required, formulate specific queries to assist in finding the answer.\n\n"
 "If a web search or file analysis is necessary, outline specific clues or details to be searched for.\n\n"
 f"## ❓ Target Question:\n{question}\n\n"
-# "## 🤔 Information Gathering:\n"
-# "Identify if a web search or file reading is necessary and outline the approach."
 "## 🔍 Clues for Investigation:\n"
 "Identify critical clues and concepts within the question that are essential for finding the answer.\n"
         )
@@ -259,11 +216,7 @@ f"## ❓ Target Question:\n{question}\n\n"
     @staticmethod
     def get_file_analysis_prompt(query, file):
         return (
-            # "# File Analysis Required\n\n"
-            # f"## 🔍 Required Information to Extract:\n---\n{query}\n---\n\n"
-            # f"## 📄 File Content for Analysis:\n---\n{file}\n---\n\n"
-            # "## 🤔 Instructions:\n"
-            # "Extract the specified information from the file. Example: 'Identify the main theme in the text.'"
+            
 "# File Analysis Task\n\n"
 f"## 🔍 Information Extraction Objective:\n---\n{query}\n---\n\n"
 f"## 📄 File Under Analysis:\n---\n{file}\n---\n\n"
@@ -293,12 +246,7 @@ f"## 📄 File Under Analysis:\n---\n{file}\n---\n\n"
     @staticmethod
     def get_distill_websearch_prompt(question, query, results):
         return (
-            # "# Summarization of Search Results\n\n"
-            # "## 🔍 Required Information for Summary:\n---\n{query}\n---\n\n"
-            # "## 🌐 Search Results for Analysis:\n---\n{results}\n---\n\n"
-            # "## ✏️ Instructions:\n"
-            # "Summarize the key findings from the search results related to the query. "
-            # "Focus on relevant information. Example: 'Summary of key points...'"
+            
 "# Summarization of Search Results\n\n"
 f"## Original question: \n---\n{question}\n---\n\n"
 f"## 🔍 Required Information for Summary:\n---\n{query}\n---\n\n"
@@ -325,15 +273,7 @@ f"## 💡 Your Previous Answer:\n---\n{answer}\n---\n\n"
     def get_self_consistency(question: str, answers: list, constraint: str) -> str:
         formatted_answers = "\n".join([f"Answer {index + 1}: {answer}" for index, answer in enumerate(answers)])
         return (
-            # "# Self-Consistency Evaluation Task\n\n"
-            # f"## 🤔 Given Question:\n---\n{question}\n---\n\n"
-            # "## 💡 Available Answers:\n---\n"
-            # f"{formatted_answers}\n"
-            # "---\n\n"
-            # "## ✏️ Instructions:\n"
-            # "Review the given answers and choose the most consistent one. "
-            # "If all answers differ, select the one you find most reliable. "
-            # f"Please keep following the constraints to answer the question: {constraint}."
+            
 "# Self-Consistency Evaluation Task\n\n"
 f"## 🤔 Question for Review:\n---\n{question}\n---\n\n"
 f"## 💡 Reviewable Answers:\n---\n{formatted_answers}\n---\n\n"
@@ -351,15 +291,7 @@ f"6. Adhere to the constraints: {constraint}.\n"
     def get_select_best(question: str, answers: list, constraint: str) -> str:
         formatted_answers = "\n".join([f"Answer {index + 1}: {answer}" for index, answer in enumerate(answers)])
         return (
-            # "# Best Answer Evaluation Task\n\n"
-            # f"## 🤔 Given Question:\n---\n{question}\n---\n\n"
-            # "## 💡 Available Answers:\n---\n"
-            # f"{formatted_answers}\n"
-            # "---\n\n"
-            # "## ✏️ Instructions:\n"
-            # "Review the given question and candidate answers and choose the most reasonable one. "
-            # "Please copy the original answer if you decide."
-            # f"Please keep following the constraints to answer the question: {constraint}."
+            
 "# Best Answer Evaluation Task\n\n"
 f"## 🤔 Question:\n---\n{question}\n---\n\n"
 f"## 💡 Candidate Answers for Evaluation:\n---\n{formatted_answers}\n---\n\n"

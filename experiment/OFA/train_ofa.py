@@ -7,28 +7,19 @@ import networkx as nx
 import os
 
 def collate_for_ofa(batch_graphs, device, role_to_id, pad_token_id):
-    """
-    Custom collate_fn for the OFA model.
-    Converts a list of NetworkX graphs into a batch of padded tensors.
-    """
-    # Find the maximum number of nodes in the batch for padding
     if not batch_graphs:
         return {}
     max_nodes = 0
     for g in batch_graphs:
-        # 'final_roles' includes the END_TOKEN
         max_nodes = max(max_nodes, len(g.graph['final_roles']))
 
-    # Initialize padded tensors
     batch_size = len(batch_graphs)
-    # Ensure task_embedding shape is correctly inferred from the first graph
     embedding_dim = batch_graphs[0].graph['task_embedding'].shape[0]
     task_embeddings = torch.zeros(batch_size, embedding_dim, device=device)
     adj_gt = torch.zeros(batch_size, max_nodes, max_nodes, device=device)
     node_roles = torch.full((batch_size, max_nodes), pad_token_id, dtype=torch.long, device=device)
     graph_sizes = torch.zeros(batch_size, dtype=torch.long, device=device)
 
-    # Populate the tensors
     for i, g in enumerate(batch_graphs):
         roles = g.graph['final_roles']
         num_nodes = len(roles)
@@ -36,11 +27,9 @@ def collate_for_ofa(batch_graphs, device, role_to_id, pad_token_id):
         task_embeddings[i] = g.graph['task_embedding'].to(device)
         graph_sizes[i] = num_nodes
         
-        # Convert role names to IDs
         role_ids = torch.tensor([role_to_id[r] for r in roles], dtype=torch.long, device=device)
         node_roles[i, :num_nodes] = role_ids
         
-        # 'num_real_nodes' is the number of nodes excluding the END_TOKEN
         num_real_nodes = num_nodes - 1
         if num_real_nodes > 0:
             nodes = sorted(list(g.nodes()))
@@ -55,9 +44,6 @@ def collate_for_ofa(batch_graphs, device, role_to_id, pad_token_id):
     }
 
 def train(args, train_dataset, model, is_pretraining=False, unconditional=False):
-    """
-    Main training loop for the OFA model.
-    """
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=args.lr_decay_factor, patience=args.lr_decay_patience, verbose=True)
     
@@ -65,7 +51,6 @@ def train(args, train_dataset, model, is_pretraining=False, unconditional=False)
     model.to(device)
     model.train()
 
-    # Create the collate_fn with necessary arguments from the model
     collate_fn_with_args = lambda batch: collate_for_ofa(batch, device, model.role_to_id, model.PAD_TOKEN_ID)
 
     dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, collate_fn=collate_fn_with_args)
@@ -78,7 +63,6 @@ def train(args, train_dataset, model, is_pretraining=False, unconditional=False)
         total_loss_gate_l1 = 0
         total_role_accuracy = 0
         
-        # KL Annealing: Calculate beta for the current epoch
         beta_vae = min(1.0, epoch / args.beta_vae_anneal_epochs)
 
         for batch_idx, batch in enumerate(dataloader):
@@ -86,7 +70,6 @@ def train(args, train_dataset, model, is_pretraining=False, unconditional=False)
             
             loss_graph, loss_balance, loss_gate_l1, accuracy = model(batch, beta_vae, unconditional=unconditional)
             
-            # Combine losses with weights
             loss = args.lambda_graph * loss_graph + \
                    args.lambda_balance * loss_balance + \
                    args.lambda_gate_l1 * loss_gate_l1
@@ -113,7 +96,6 @@ def train(args, train_dataset, model, is_pretraining=False, unconditional=False)
         print(f"  Avg Total Loss: {avg_loss:.4f} | Avg Role Accuracy: {avg_role_accuracy:.2f}%")
         print(f"  Losses -> Graph: {avg_loss_graph:.4f}, Balance: {avg_loss_balance:.4f}, GateL1: {avg_loss_gate_l1:.4f}")
 
-        # Save the model every 20 epochs
         if (epoch + 1) % 100 == 0:
             if not os.path.exists(args.save_dir):
                 os.makedirs(args.save_dir)
@@ -123,7 +105,6 @@ def train(args, train_dataset, model, is_pretraining=False, unconditional=False)
             elif is_pretraining:
                 model_path = os.path.join(args.save_dir, f'ofa_stage2_conditional_{args.lr}_{epoch+1}_sparse.pth')
             else:
-                # Extract dataset names from data_dirs
                 dataset_names = [os.path.basename(d.strip('/')).replace('Finetune_OFA', '') for d in args.data_dirs]
                 dataset_str = '_'.join(dataset_names)
                 model_path = os.path.join(args.save_dir, f'ofa_finetune_{dataset_str}_{args.lr}_{epoch+1}_sparse.pth')

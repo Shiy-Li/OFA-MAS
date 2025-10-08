@@ -27,10 +27,8 @@ def clean_answer(model_pred):
     preds = model_pred.split(ANSWER_TRIGGER.lower())
     answer_flag = True if len(preds) > 1 else False
     if answer_flag:
-        # Pick first answer with flag
         pred = preds[1]
     else:
-        # Pick last number without flag
         pred = preds[-1]
 
     pred = pred.replace(",", "")
@@ -40,13 +38,10 @@ def clean_answer(model_pred):
         return INVALID_ANS
 
     if answer_flag:
-        # choose the first element in list
         pred = pred[0]
     else:
-        # choose the last element in list
         pred = pred[-1]
 
-    # (For arithmetic tasks) if a word ends with period, it will be omitted ...
     if pred[-1] == ".":
         pred = pred[:-1]
 

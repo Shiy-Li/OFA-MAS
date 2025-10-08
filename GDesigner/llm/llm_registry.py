@@ -22,7 +22,7 @@ class LLMRegistry:
 
         if model_name == 'mock':
             model = cls.registry.get(model_name)
-        elif model_name[0:3] == 'gpt': # any version of GPTChat like "gpt-4o"
+        elif model_name[0:3] == 'gpt':
             model = cls.registry.get('GPTChat', model_name)
         elif model_name in ['deepseek-chat']:
             model = cls.registry.get('DeepSeek', model_name)

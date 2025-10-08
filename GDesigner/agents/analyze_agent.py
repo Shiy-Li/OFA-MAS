@@ -31,8 +31,6 @@ class AnalyzeAgent(Node):
 
     async def _process_inputs(self, raw_inputs: Dict[str, str], spatial_info: Dict[str, Dict],
                               temporal_info: Dict[str, Dict], **kwargs) -> List[Any]:
-        """ To be overriden by the descendant class """
-        """ Process the raw_inputs(most of the time is a List[Dict]) """
         system_prompt = f"{self.constraint}"
         user_prompt = f"The task is: {raw_inputs['task']}\n" if self.role != 'Fake' else self.prompt_set.get_adversarial_answer_prompt(
             raw_inputs['task'])
@@ -56,8 +54,6 @@ class AnalyzeAgent(Node):
         return system_prompt, user_prompt
 
     def _execute(self, input: Dict[str, str], spatial_info: Dict[str, Dict], temporal_info: Dict[str, Dict], **kwargs):
-        """ To be overriden by the descendant class """
-        """ Use the processed input to get the result """
 
         system_prompt, user_prompt = self._process_inputs(input, spatial_info, temporal_info)
         message = [{'role': 'system', 'content': system_prompt}, {'role': 'user', 'content': user_prompt}]
@@ -66,17 +62,10 @@ class AnalyzeAgent(Node):
 
     async def _async_execute(self, input: Dict[str, str], spatial_info: Dict[str, Dict], temporal_info: Dict[str, Dict],
                              **kwargs):
-        """ To be overriden by the descendant class """
-        """ Use the processed input to get the result """
         system_prompt, user_prompt = await self._process_inputs(input, spatial_info, temporal_info)
         message = [{'role': 'system', 'content': system_prompt}, {'role': 'user', 'content': user_prompt}]
-        # print(f"################system prompt:{system_prompt}")
-        # print(f"################user prompt:{user_prompt}")
         response = await self.llm.agen(message)
         if self.wiki_summary != "":
             response += f"\n\n{self.wiki_summary}"
             self.wiki_summary = ""
-        # print(f"################system prompt:{system_prompt}")
-        # print(f"################user prompt:{user_prompt}")
-        # print(f"################response:{response}")
         return response

@@ -2,7 +2,6 @@ import re
 
 
 def aqua_data_process(dataset):
-    # extract the question, step and answer
     list_data_dict = []
     for data in dataset:
         task = data["question"] + ' ' + 'Choices:'
@@ -44,7 +43,6 @@ def aqua_get_predict(pred_str):
         pattern = r'[A-Z]'
         pred = re.findall(pattern, pred_str)
         if (len(pred) >= 1):
-            # print(pred_str)
             pred = pred[-1]
         else:
             pred = ''
@@ -162,7 +160,6 @@ def _fix_a_slash_b(string):
 
 
 def _remove_right_units(string):
-    # "\\text{ " only ever occurs (at least in the val set) when describing units
     if "\\text{ " in string:
         splits = string.split("\\text{ ")
         assert len(splits) == 2
@@ -172,70 +169,48 @@ def _remove_right_units(string):
 
 
 def _strip_string(string):
-    # linebreaks
     string = string.replace("\n", "")
-    # print(string)
 
-    # remove inverse spaces
     string = string.replace("\\!", "")
-    # print(string)
 
-    # replace \\ with \
     string = string.replace("\\\\", "\\")
-    # print(string)
 
-    # replace tfrac and dfrac with frac
     string = string.replace("tfrac", "frac")
     string = string.replace("dfrac", "frac")
-    # print(string)
 
-    # remove \left and \right
     string = string.replace("\\left", "")
     string = string.replace("\\right", "")
-    # print(string)
 
-    # Remove circ (degrees)
     string = string.replace("^{\\circ}", "")
     string = string.replace("^\\circ", "")
 
-    # remove dollar signs
     string = string.replace("\\$", "")
 
-    # remove units (on the right)
     string = _remove_right_units(string)
 
-    # remove percentage
     string = string.replace("\\%", "")
     string = string.replace("\%", "")
 
-    # " 0." equivalent to " ." and "{0." equivalent to "{." Alternatively, add "0" if "." is the start of the string
     string = string.replace(" .", " 0.")
     string = string.replace("{.", "{0.")
-    # if empty, return empty string
     if len(string) == 0:
         return string
     if string[0] == ".":
         string = "0" + string
 
-    # to consider: get rid of e.g. "k = " or "q = " at beginning
     if len(string.split("=")) == 2:
         if len(string.split("=")[0]) <= 2:
             string = string.split("=")[1]
 
-    # fix sqrt3 --> sqrt{3}
     string = _fix_sqrt(string)
 
-    # remove spaces
     string = string.replace(" ", "")
 
-    # \frac1b or \frac12 --> \frac{1}{b} and \frac{1}{2}, etc. Even works with \frac1{72} (but not \frac{72}1). Also does a/b --> \\frac{a}{b}
     string = _fix_fracs(string)
 
-    # manually change 0.5 --> \frac{1}{2}
     if string == "0.5":
         string = "\\frac{1}{2}"
 
-    # NOTE: X/Y changed to \frac{X}{Y} in dataset, but in simple cases fix in case the model output is X/Y
     string = _fix_a_slash_b(string)
 
     return string

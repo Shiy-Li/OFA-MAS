@@ -1,8 +1,5 @@
 from GDesigner.utils.globals import Cost, PromptTokens, CompletionTokens
 import tiktoken
-# GPT-4:  https://platform.openai.com/docs/models/gpt-4-and-gpt-4-turbo
-# GPT3.5: https://platform.openai.com/docs/models/gpt-3-5
-# DALL-E: https://openai.com/pricing
 
 def cal_token(model:str, text:str):
     encoder = tiktoken.encoding_for_model(model)
@@ -17,9 +14,7 @@ def cost_count(prompt, response, model_name):
 
     prompt_len = cal_token(model_name, prompt)
     completion_len = cal_token(model_name, response)
-    # print('before', model_name)
     if "gpt-4" in model_name:
-        # print('in model_name', model_name)
         branch = "gpt-4"
         price = prompt_len * OPENAI_MODEL_INFO[branch][model_name]["input"] /1000 + \
                 completion_len * OPENAI_MODEL_INFO[branch][model_name]["output"] /1000
@@ -42,33 +37,17 @@ def cost_count(prompt, response, model_name):
     PromptTokens.instance().value += prompt_len
     CompletionTokens.instance().value += completion_len
 
-    # print(f"Prompt Tokens: {prompt_len}, Completion Tokens: {completion_len}")
     return price, prompt_len, completion_len
 
 def cost_count_from_usage(prompt_tokens: int, completion_tokens: int, model_name: str):
-    """
-    Calculate cost based on token counts from API usage response.
-    This uses the SAME pricing standards as cost_count() to ensure fair comparison.
-    
-    Args:
-        prompt_tokens: Number of tokens in the prompt (from API usage)
-        completion_tokens: Number of tokens in the completion (from API usage)  
-        model_name: Name of the model used
-    
-    Returns:
-        tuple: (price, prompt_tokens, completion_tokens)
-    """
     price: float = 0.0
     
-    # Use the SAME logic as cost_count() for fair comparison
     if "gpt-4" in model_name:
         branch = "gpt-4"
         if model_name in OPENAI_MODEL_INFO[branch]:
             price = (prompt_tokens * OPENAI_MODEL_INFO[branch][model_name]["input"] / 1000 + 
                     completion_tokens * OPENAI_MODEL_INFO[branch][model_name]["output"] / 1000)
         else:
-            # Use same fallback logic as cost_count - but original cost_count would crash here
-            # so we need to handle this case gracefully
             print(f"Warning: Model {model_name} not found in pricing info. Cost set to 0.")
             price = 0.0
             
@@ -82,17 +61,14 @@ def cost_count_from_usage(prompt_tokens: int, completion_tokens: int, model_name
             price = 0.0
                     
     elif "dall-e" in model_name:
-        # Same as cost_count
         price = 0.0
         prompt_tokens = 0
         completion_tokens = 0
     else:
-        # Same as cost_count
         price = 0.0
-        prompt_tokens = prompt_tokens  # Keep original token counts for tracking
+        prompt_tokens = prompt_tokens
         completion_tokens = completion_tokens
 
-    # Update global counters exactly like cost_count does
     Cost.instance().value += price
     PromptTokens.instance().value += prompt_tokens
     CompletionTokens.instance().value += completion_tokens

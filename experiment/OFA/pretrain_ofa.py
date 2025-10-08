@@ -9,10 +9,8 @@ from experiment.OFA.model_ofa import OFAModel
 from experiment.OFA.train_ofa import train
 
 def main():
-    # Correctly unpack the (parser, args) tuple returned by pretrain_args
     args = pretrain_stage2_args()
     
-    # Set seeds for reproducibility
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -20,7 +18,6 @@ def main():
         torch.cuda.manual_seed(args.seed)
         torch.cuda.manual_seed_all(args.seed)
 
-    # Load dataset
     print("Loading dataset for Stage 2: Conditional Pre-training...")
     train_dataset, role_embeddings_dict = load_graph_dataset(args)
     
@@ -30,12 +27,10 @@ def main():
         
     print(f"Dataset loaded with {len(train_dataset)} graphs.")
     
-    # Initialize model
     print("Initializing model...")
     print('role_embeddings_dict', role_embeddings_dict.keys())
     model = OFAModel(args, role_embeddings_dict)
 
-    # Set device
     if args.use_gpu and torch.cuda.is_available():
         device = torch.device("cuda")
         print("Using GPU.")
@@ -44,16 +39,12 @@ def main():
         print("Using CPU.")
     model = model.to(device)
 
-    # Load Stage 1 pre-trained model if a path is provided
     if args.stage1_model_path and os.path.exists(args.stage1_model_path):
         print(f"Loading Stage 1 pre-trained model from {args.stage1_model_path}...")
         try:
-            # Load checkpoint and filter out incompatible keys (like role_embeddings if vocab changes)
             checkpoint = torch.load(args.stage1_model_path, map_location=device)
-            #
             if 'role_embeddings' in checkpoint:
                 checkpoint.pop('role_embeddings')
-            # Load the rest of the weights, ignoring mismatches
             model.load_state_dict(checkpoint, strict=False)
             print("Stage 1 model loaded successfully.")
         except Exception as e:
@@ -62,7 +53,6 @@ def main():
         print("No Stage 1 model path provided or file not found. Starting Stage 2 from scratch.")
 
 
-    # Start training
     print("Starting Stage 2: Conditional Pre-training...")
     trained_model = train(args, train_dataset, model, is_pretraining=True)
     

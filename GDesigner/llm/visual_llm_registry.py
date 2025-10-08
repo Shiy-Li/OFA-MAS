@@ -22,7 +22,7 @@ class VisualLLMRegistry:
 
         if model_name == 'mock':
             model = cls.registry.get(model_name)
-        else: # any version of GPT4VChat like "gpt-4-vision-preview"
+        else:
             model = cls.registry.get('GPT4VChat', model_name)
 
         return model

@@ -40,7 +40,6 @@ class MMLUDataset(ABC):
 
         total_df = total_df.reset_index(drop=True)
 
-        # Pseudorandom shuffle
         total_df = total_df.reindex(rng.permutation(total_df.index))
 
         print("Total number of questions: ", len(total_df))
@@ -83,7 +82,7 @@ class MMLUDataset(ABC):
             ans_pos = answer.find("answer is")
             if ans_pos != -1:
                 answer = answer[ans_pos + len("answer is"):].strip(":").strip().strip("Option").strip()
-            answer = answer[0]  # Try to format the answer by taking the first letter
+            answer = answer[0]
         return answer
 
     @staticmethod

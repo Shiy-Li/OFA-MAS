@@ -58,11 +58,9 @@ def execute_code_get_return(code: str):
 
 class PyExecutor(Executor):
     def execute(self, func: str, tests: List[str], timeout: int = 5, verbose: bool = True) -> ExecuteResult:
-        # Combine function code and assert statement
         imports = 'from typing import *'
         func_test_list = [f'{imports}\n{func}\n{test}' for test in tests]
 
-        # Run the tests and collect the results
         success_tests = []
         failed_tests = []
         is_passing = True
@@ -74,7 +72,7 @@ class PyExecutor(Executor):
                     capture_output=True,
                     text=True,
                     timeout=timeout,
-                    input=""  # Provides empty string to stdin, causing `input()` to receive EOF
+                    input=""  
                 )
 
                 if result.returncode == 0:

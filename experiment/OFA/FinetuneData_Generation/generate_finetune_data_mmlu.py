@@ -11,7 +11,6 @@ import random
 import pickle
 from sentence_transformers import SentenceTransformer
 
-# Ensure the project root is in the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 sys.stdout.reconfigure(encoding='utf-8')
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -21,7 +20,6 @@ from experiment.OFA.utils import get_kwargs, Accuracy
 from datasets.mmlu_dataset import MMLUDataset
 from datasets.MMLU.download import download
 from GDesigner.graph.graph import Graph, TestGraph
-# Use the universal role pool for OFA
 from experiment.OFA.uni_role import ROLE_DESCRIPTION
 
 
@@ -41,19 +39,15 @@ OUTPUT_DIR = "./Finetune_OFA_mmlu"
 
 
 def get_all_classic_configs():
-    """
-    Return a comprehensive list of classic topology configurations,
-    combining simple and complex types from baseline methods for MMLU.
-    """
     configs = set()
-    for agent_num in range(2, 7):  # MMLU specific range
+    for agent_num in range(2, 7):
         if agent_num == 2:
             configs.add(('Chain', 2))
         elif agent_num == 3:
             configs.add(('Chain', 3))
             configs.add(('Star', 3))
             configs.add(('FullConnected', 3))
-        else:  # Covers agent_num 4, 5, 6
+        else:
             configs.add(('Chain', agent_num))
             configs.add(('Star', agent_num))
             configs.add(('Layered', agent_num))
@@ -66,12 +60,10 @@ async def main():
     args = parse_args()
     download()
 
-    # The sentence model is needed for encoding questions later anyway.
     print("Initializing sentence model...")
     sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
 
     EMBEDDINGS_CACHE_PATH = os.path.join(os.path.dirname(__file__), '.', 'precomputed_role_embeddings.pkl')
-    # Load or compute role embeddings
     if os.path.exists(EMBEDDINGS_CACHE_PATH):
         print(f"Loading cached role embeddings from {EMBEDDINGS_CACHE_PATH}...")
         with open(EMBEDDINGS_CACHE_PATH, 'rb') as f:
@@ -86,10 +78,8 @@ async def main():
             pickle.dump(role_embeddings_dict, f)
         print(f"Role embeddings cached to {EMBEDDINGS_CACHE_PATH}")
 
-    # Use the first N (batch_size * num_iterations) samples from the dev set for fine-tuning
     dataset = MMLUDataset('dev')
     train_set_size = args.batch_size * args.num_iterations
-    # Ensure we don't request more samples than available
     train_set_size = min(train_set_size, len(dataset))
 
     train_indices = list(range(train_set_size))
@@ -107,8 +97,6 @@ async def main():
         available_roles = list(ROLE_DESCRIPTION.keys())
         random_roles = random.choices(available_roles, k=agent_num)
 
-        # Filter kwargs to only pass what the Graph class constructor expects.
-        # The Graph constructor directly accepts 'fixed_spatial_masks'.
         graph_kwargs = {}
         if 'fixed_spatial_masks' in all_kwargs:
             graph_kwargs['fixed_spatial_masks'] = all_kwargs['fixed_spatial_masks']

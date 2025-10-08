@@ -89,18 +89,12 @@ def get_kwargs(mode: str, N: int):
 
 
 def save_graph_with_features(flow_graph, filepath, metadata):
-    """
-    Attach metadata to the graph and save it.
-    """
     for key, value in metadata.items():
         setattr(flow_graph, key, value)
     torch.save(flow_graph, filepath)
 
 
 class Accuracy:
-    """
-    Simple accuracy tracker.
-    """
     def __init__(self):
         self._num_correct = 0
         self._num_total = 0

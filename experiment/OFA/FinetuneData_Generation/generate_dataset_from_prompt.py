@@ -220,18 +220,8 @@ Now, begin generating the {num_to_generate} query-configuration pairs in the spe
 """
 
 def generate_dataset(output_path: str, model_name: str, num_queries: int, batch_size: int):
-    """
-    Generates a dataset using a GPT model by making multiple API calls in batches and saves it to a JSONL file.
-
-    Args:
-        output_path (str): The path to save the generated JSONL file.
-        model_name (str): The name of the GPT model to use.
-        num_queries (int): The total number of queries to generate.
-        batch_size (int): The number of queries to generate in each API call.
-    """
     client = OpenAI(base_url=MINE_BASE_URL, api_key=MINE_API_KEY)
 
-    # Overwrite the file to start fresh
     with open(output_path, 'w', encoding='utf-8') as f:
         pass
 
@@ -270,7 +260,6 @@ def generate_dataset(output_path: str, model_name: str, num_queries: int, batch_
 
             with open(output_path, 'a', encoding='utf-8') as f:
                 f.write(generated_text)
-                # Ensure a newline exists between batches
                 if not generated_text.endswith('\n'):
                     f.write('\n')
 

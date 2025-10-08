@@ -12,7 +12,6 @@ from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
 import torch
 
-# Ensure the project root is in the Python path
 sys.stdout.reconfigure(encoding='utf-8')
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
@@ -20,7 +19,6 @@ from GDesigner.graph.graph import Graph, TestGraph
 from GDesigner.tools.reader.readers import JSONLReader
 from experiment.OFA.utils import get_kwargs
 from datasets.aqua_dataset import aqua_data_process, aqua_get_predict
-# Use the universal role pool for OFA
 from experiment.OFA.uni_role import ROLE_DESCRIPTION
 
 OUTPUT_DIR = "./Finetune_OFA_aqua"
@@ -41,9 +39,6 @@ def parse_args():
 
 
 def get_all_classic_configs():
-    """
-    Return a comprehensive list of classic topology configurations for AQuA.
-    """
     configs = set()
     for agent_num in range(2, 5):
         if agent_num == 2:
@@ -64,13 +59,11 @@ def get_all_classic_configs():
 async def main():
     args = parse_args()
 
-    # The sentence model is needed for encoding questions later anyway.
     print("Initializing sentence model...")
     sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
 
     EMBEDDINGS_CACHE_PATH = os.path.join(os.path.dirname(__file__), '..', 'precomputed_role_embeddings.pkl')
 
-    # Load or compute role embeddings
     if os.path.exists(EMBEDDINGS_CACHE_PATH):
         print(f"Loading cached role embeddings from {EMBEDDINGS_CACHE_PATH}...")
         with open(EMBEDDINGS_CACHE_PATH, 'rb') as f:

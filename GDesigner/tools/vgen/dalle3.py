@@ -1,6 +1,4 @@
-# This code is adapted from https://github.com/abi/screenshot-to-code/blob/5e3a174203dd6e59603c2fa944b14c7b398bfade/backend/image_generation.py
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 import asyncio
 import os
@@ -39,11 +37,10 @@ async def generate_image(prompt, api_key):
 
 
 def extract_dimensions(url):
-    # Regular expression to match numbers in the format '300x200'
     matches = re.findall(r"(\d+)x(\d+)", url)
 
     if matches:
-        width, height = matches[0] # Extract the first match
+        width, height = matches[0]
         width = int(width)
         height = int(height)
         return (width, height)
@@ -65,58 +62,42 @@ def create_alt_url_mapping(code):
 
 
 async def generate_images(code, api_key, image_cache):
-    # Fine all images
     soup = BeautifulSoup(code, "html.parser")
     images = soup.find_all("img")
 
-    # Extract alt texts as image prompts
     alts = []
     for img in images:
-        # Only include URL if the image starts with htt[s://placehold.co
-        # and it's not already in the image_cache
         if (
             img["src"].startswith("https://placehold.co")
             and image_cache.get(img.get("alt")) is None
         ):
             alts.append(img.get("alt", None))
 
-    # Exclude images with no alt text
     alts = [alt for alt in alts if alt is not None]
 
-    # Remove deplicates
     prompts = list(set(alts))
 
-    # Return early if there are no images to replace
     if len(prompts) == 0:
         return code
     
-    # Generate images
     results = await process_tasks(prompts, api_key)
 
-    # Create a dict mapping alt text to image URL
     mapped_image_urls = dict(zip(prompts, results))
 
-    # Merge with image_cache
     mapped_image_urls = {**mapped_image_urls, **image_cache}
 
-    # Replace old image URLs with the generated URLs
     for img in images:
-        # Skip images that don't start with https://placehold.co (leave them alone)
         if not img["src"].startswith("https://placehold.co"):
             continue
 
         new_url = mapped_image_urls[img.get("alt")]
 
         if new_url:
-            # Set width and height attributes
             width, height = extract_dimensions(img["src"])
             img["width"] = width
             img["height"] = height
-            # Replace img['src'] with the mapped image URL
             img["src"] = new_url
         else:
             print("Image generation failed for alt text:" + img.get("alt"))
 
-    # Return the modified HTML
-    # (need to prettify it because BeautifulSoup messes up the formatting)
     return soup.prettify()

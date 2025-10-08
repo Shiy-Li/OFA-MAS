@@ -29,14 +29,12 @@ class FinalWriteCode(Node):
         return results
     
     def _process_inputs(self, raw_inputs:Dict[str,str], spatial_info:Dict[str,Any], temporal_info:Dict[str,Any], **kwargs)->List[Any]:
-        """ To be overriden by the descendant class """
-        """ Process the raw_inputs(most of the time is a List[Dict]) """
         self.role = self.prompt_set.get_decision_role()
         self.constraint = self.prompt_set.get_decision_constraint()          
         system_prompt = f"{self.role}.\n {self.constraint}"
         spatial_str = ""
         for id, info in spatial_info.items():
-            if info['output'].startswith("```python") and info['output'].endswith("```"):  # is python code
+            if info['output'].startswith("```python") and info['output'].endswith("```"):
                 self.internal_tests = self.extract_example(raw_inputs)
                 output = info['output'].lstrip("```python\n").rstrip("\n```")
                 is_solved, feedback, state = PyExecutor().execute(output, self.internal_tests, timeout=10)
@@ -47,8 +45,6 @@ class FinalWriteCode(Node):
         return system_prompt, user_prompt
                 
     def _execute(self, input:Dict[str,str],  spatial_info:Dict[str,Any], temporal_info:Dict[str,Any],**kwargs):
-        """ To be overriden by the descendant class """
-        """ Use the processed input to get the result """
   
         system_prompt, user_prompt = self._process_inputs(input, spatial_info, temporal_info)
         message = [{'role':'system','content':system_prompt},{'role':'user','content':user_prompt}]
@@ -56,8 +52,6 @@ class FinalWriteCode(Node):
         return response
     
     async def _async_execute(self, input:Dict[str,str],  spatial_info:Dict[str,Any], temporal_info:Dict[str,Any],**kwargs):
-        """ To be overriden by the descendant class """
-        """ Use the processed input to get the result """
   
         system_prompt, user_prompt = self._process_inputs(input, spatial_info, temporal_info)
         message = [{'role':'system','content':system_prompt},{'role':'user','content':user_prompt}]
@@ -73,8 +67,6 @@ class FinalRefer(Node):
         self.prompt_set = PromptSetRegistry.get(domain)
 
     def _process_inputs(self, raw_inputs:Dict[str,str], spatial_info:Dict[str,Any], temporal_info:Dict[str,Any], **kwargs)->List[Any]:
-        """ To be overriden by the descendant class """
-        """ Process the raw_inputs(most of the time is a List[Dict]) """
         self.role = self.prompt_set.get_decision_role()
         self.constraint = self.prompt_set.get_decision_constraint()          
         system_prompt = f"{self.role}.\n {self.constraint}"
@@ -87,8 +79,6 @@ class FinalRefer(Node):
         return system_prompt, user_prompt
                 
     def _execute(self, input:Dict[str,str],  spatial_info:Dict[str,Any], temporal_info:Dict[str,Any],**kwargs):
-        """ To be overriden by the descendant class """
-        """ Use the processed input to get the result """
   
         system_prompt, user_prompt = self._process_inputs(input, spatial_info, temporal_info)
         message = [{'role':'system','content':system_prompt},{'role':'user','content':user_prompt}]
@@ -96,32 +86,22 @@ class FinalRefer(Node):
         return response
     
     async def _async_execute(self, input:Dict[str,str],  spatial_info:Dict[str,Any], temporal_info:Dict[str,Any],**kwargs):
-        """ To be overriden by the descendant class """
-        """ Use the processed input to get the result """
   
         system_prompt, user_prompt = self._process_inputs(input, spatial_info, temporal_info)
         message = [{'role':'system','content':system_prompt},{'role':'user','content':user_prompt}]
         response = await self.llm.agen(message)
-        # print(f"################system prompt:{system_prompt}")
-        # print(f"################user prompt:{user_prompt}")
-        # print(f"################response:{response}")
         return response
 
 @AgentRegistry.register('FinalDirect')
 class FinalDirect(Node):
     def __init__(self, id: Optional[str] =None, domain: str = "", llm_name: str = "", ):
-        """ Used for Directed IO """
         super().__init__(id, "FinalDirect")
         self.prompt_set = PromptSetRegistry.get(domain)
         
     def _process_inputs(self, raw_inputs:Dict[str,str], spatial_info:Dict[str,Any], temporal_info:Dict[str,Any], **kwargs)->List[Any]:
-        """ To be overriden by the descendant class """
-        """ Process the raw_inputs(most of the time is a List[Dict]) """
         return None
                 
     def _execute(self, input:Dict[str,str],  spatial_info:Dict[str,Any], temporal_info:Dict[str,Any],**kwargs):
-        """ To be overriden by the descendant class """
-        """ Use the processed input to get the result """
         output = ""
         info_list = []
         for info in spatial_info.values():
@@ -131,8 +111,6 @@ class FinalDirect(Node):
         return output
     
     async def _async_execute(self, input:Dict[str,str],  spatial_info:Dict[str,Any], temporal_info:Dict[str,Any],**kwargs):
-        """ To be overriden by the descendant class """
-        """ Use the processed input to get the result """
         output = ""
         info_list = []
         for info in spatial_info.values():
@@ -145,18 +123,13 @@ class FinalDirect(Node):
 @AgentRegistry.register('FinalMajorVote')
 class FinalMajorVote(Node):
     def __init__(self, id: Optional[str] =None, domain: str = "", llm_name: str = "", ):
-        """ Used for Directed IO """
         super().__init__(id, "FinalMajorVote")
         self.prompt_set = PromptSetRegistry.get(domain)
         
     def _process_inputs(self, raw_inputs:Dict[str,str], spatial_info:Dict[str,Any], temporal_info:Dict[str,Any], **kwargs)->List[Any]:
-        """ To be overriden by the descendant class """
-        """ Process the raw_inputs(most of the time is a List[Dict]) """
         return None
     
     def _execute(self, input:Dict[str,str],  spatial_info:Dict[str,Any], temporal_info:Dict[str,Any],**kwargs):
-        """ To be overriden by the descendant class """
-        """ Use the processed input to get the result """
         output_num = {}
         max_output = ""
         max_output_num = 0
@@ -172,14 +145,11 @@ class FinalMajorVote(Node):
         return max_output
     
     async def _async_execute(self, input:Dict[str,str],  spatial_info:Dict[str,Any], temporal_info:Dict[str,Any],**kwargs):
-        """ To be overriden by the descendant class """
-        """ Use the processed input to get the result """
         output_num = {}
         max_output = ""
         max_output_num = 0
         for info in spatial_info.values():
             processed_output = self.prompt_set.postprocess_answer(info['output'])
-            # print(processed_output)
             if processed_output in output_num:
                 output_num[processed_output] += 1
             else:
