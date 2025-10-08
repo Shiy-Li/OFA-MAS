@@ -9,6 +9,9 @@ import random
 import sys
 import datetime
 import copy
+import re
+import string
+import warnings
 from tqdm import tqdm
 from typing import List, Any, Iterator
 
@@ -22,11 +25,77 @@ from mas_framework.tools.coding.python_executor import PyExecutor
 
 from experiment.OFA.args_ofa import evaluate_args
 from experiment.OFA.model_ofa import OFAModel
-from experiment.OFA.uni_role import ROLE_DESCRIPTION
-
+from mas_framework.prompt.gaia_prompt_set import ROLE_DESCRIPTION
+# Dataset specific imports
 from datasets.mmlu_dataset import MMLUDataset
 from datasets.gsm8k_dataset import gsm_data_process, gsm_get_predict, svamp_data_process, multiarith_data_process
 from datasets.aqua_dataset import aqua_data_process, aqua_get_predict
+
+
+def normalize_number_str(number_str: str) -> float:
+    for char in ["$", "%", ","]:
+        number_str = number_str.replace(char, "")
+    try:
+        return float(number_str)
+    except ValueError:
+        print(f"String {number_str} cannot be normalized to number str.")
+        return float("inf")
+
+def split_string(
+    s: str,
+    char_list: List[str] = [",", ";"],
+) -> List[str]:
+    pattern = f"[{''.join(char_list)}]"
+    return re.split(pattern, s)
+def normalize_str(input_str, remove_punct=True) -> str:
+    no_spaces = re.sub(r"\s", "", input_str)
+
+    if remove_punct:
+        translator = str.maketrans("", "", string.punctuation)
+        return no_spaces.lower().translate(translator)
+    else:
+        return no_spaces.lower()
+
+def question_scorer(
+    model_answer: str,
+    ground_truth: str,
+) -> bool:
+    def is_float(element: any) -> bool:
+        try:
+            float(element)
+            return True
+        except ValueError:
+            return False
+
+    if is_float(ground_truth):
+        normalized_answer = normalize_number_str(model_answer)
+        return normalized_answer == float(ground_truth)
+
+    elif any(char in ground_truth for char in [",", ";"]):
+
+        gt_elems = split_string(ground_truth)
+        ma_elems = split_string(model_answer)
+
+        if len(gt_elems) != len(ma_elems):
+            warnings.warn(
+                "Answer lists have different lengths, returning False.", UserWarning
+            )
+            return False
+
+        comparisons = []
+        for ma_elem, gt_elem in zip(ma_elems, gt_elems):
+            if is_float(gt_elem):
+                normalized_ma_elem = normalize_number_str(ma_elem)
+                comparisons.append(normalized_ma_elem == float(gt_elem))
+            else:
+                comparisons.append(
+                    normalize_str(ma_elem, remove_punct=False)
+                    == normalize_str(gt_elem, remove_punct=False)
+                )
+        return all(comparisons)
+
+    else:
+        return normalize_str(model_answer) == normalize_str(ground_truth)
 
 
 def convert_to_pyg_graph(nx_graph, task_text):
@@ -37,7 +106,8 @@ def convert_to_pyg_graph(nx_graph, task_text):
     for i in range(num_nodes):
         features.append({
             'role': nx_graph.nodes[i].get('role', 'Unknown'),
-            'constraint': nx_graph.nodes[i].get('constraint', ROLE_DESCRIPTION[nx_graph.nodes[i].get('role', 'Unknown')])
+            'constraint': nx_graph.nodes[i].get('constraint',
+                        ROLE_DESCRIPTION[nx_graph.nodes[i].get('role', 'Unknown')])
         })
     pyg.x = features
     edges = [[u, v] for u, v in nx_graph.edges()]
@@ -57,7 +127,8 @@ def get_dataset_config(dataset_name):
             'record_to_input': dataset.record_to_input,
             'postprocess_answer': dataset.postprocess_answer,
             'check_correctness': lambda pred, rec: pred == dataset.record_to_target_answer(rec),
-            'decision_method': "FinalRefer"
+            'decision_method': "FinalRefer",
+            'agent_names': ['AnalyzeAgent']
         }
     elif dataset_name == 'gsm8k':
         full_dataset_raw = JSONLReader.parse_file('../../datasets/gsm8k/gsm8k.jsonl')
@@ -140,11 +211,28 @@ def get_dataset_config(dataset_name):
             'decision_method': "FinalRefer",
             'domain': 'gsm8k'
         }
+    elif dataset_name.startswith('gaia_level_'):
+        level = dataset_name.split('_')[-1]
+        dataset_path = f'../../datasets/gaia/level_{level}_val.json'
+        if not os.path.exists(dataset_path):
+             raise FileNotFoundError(
+                f"GAIA dataset file not found at {dataset_path}. "
+                f"Please ensure the GAIA dataset is correctly placed."
+            )
+        dataset = JSONReader.parse_file(dataset_path)
+
+        dataset_specific_info = {
+            'record_to_input': lambda rec: {"task": rec["Question"]},
+            'postprocess_answer': lambda ans: ans.split("FINAL ANSWER: ")[-1] if "FINAL ANSWER: " in ans else ans,
+            'check_correctness': lambda pred, rec: question_scorer(pred, rec["Final answer"]),
+            'decision_method': "FinalRefer",
+            'domain': 'gaia',
+            'agent_names': ['AnalyzeAgent']
+        }
     else:
         raise ValueError(f"Unsupported dataset: {dataset_name}")
         
     return dataset, dataset_specific_info
-
 
 async def evaluate(args, model, dataset, sentence_model, dataset_specific_info):
     print(f"Starting evaluation on {args.dataset}...")
@@ -154,14 +242,12 @@ async def evaluate(args, model, dataset, sentence_model, dataset_specific_info):
     check_correctness = dataset_specific_info['check_correctness']
     decision_method = dataset_specific_info['decision_method']
     domain = dataset_specific_info.get('domain', args.dataset)
+    agent_names = dataset_specific_info.get('agent_names')
 
     total_correct = 0
     results_list = []
     if args.dataset == 'mmlu':
         args.limit = 153
-    elif args.dataset == 'gsm8k':
-        args.limit = 1000
-
     def eval_loader(data, batch_size: int) -> Iterator[List[Any]]:
         records = []
         for i, record in enumerate(data):
@@ -177,7 +263,7 @@ async def evaluate(args, model, dataset, sentence_model, dataset_specific_info):
     data_len = min(len(dataset), args.limit) if args.limit is not None else len(dataset)
     num_batches = int(math.ceil(data_len / args.eval_batch_size))
 
-    pbar = tqdm(enumerate(eval_loader(dataset, args.eval_batch_size)), total=num_batches, desc=f"Evaluating on {args.dataset}", ncols=120)
+    pbar = tqdm(enumerate(eval_loader(dataset, args.eval_batch_size)), total=num_batches, desc=f"Evaluating on {args.dataset}")
     
     for i_batch, record_batch in pbar:
         answer_tasks = []
@@ -192,6 +278,28 @@ async def evaluate(args, model, dataset, sentence_model, dataset_specific_info):
                 task_query_embedding=query_embedding,
                 max_nodes=args.max_nodes,
             )
+            
+            print("\n" + "-"*20 + f" Query {i_batch * args.eval_batch_size + len(metadata_for_tasks)} " + "-"*20)
+            print(f"Query Text: {task_text[:200]}...")
+            
+            nodes = list(generated_graph.nodes(data=True))
+            edges = list(generated_graph.edges())
+            
+            print("Generated Graph Structure:")
+            if not nodes:
+                print("  - No nodes generated.")
+            else:
+                for i, node_data in nodes:
+                    role = node_data.get('role', 'N/A')
+                    print(f"  - Node {i}: Role = {role}")
+            
+            if not edges:
+                print("  - No edges generated.")
+            else:
+                print("  - Edges:")
+                for u, v in edges:
+                    print(f"    - ({u} -> {v})")
+            print("-" * (42 + len(str(i_batch * args.eval_batch_size + len(metadata_for_tasks)))))
 
             pyg_data = convert_to_pyg_graph(generated_graph, task_text)
             
@@ -199,7 +307,7 @@ async def evaluate(args, model, dataset, sentence_model, dataset_specific_info):
                 domain=domain,
                 llm_name=args.llm_name,
                 decision_method=decision_method,
-                pyg_data=pyg_data
+                pyg_data=pyg_data,
             )
             
             answer_tasks.append(test_graph.arun(input_dict, num_rounds=1))
@@ -231,9 +339,8 @@ async def evaluate(args, model, dataset, sentence_model, dataset_specific_info):
         
         acc = total_correct / len(results_list) * 100
         pbar.set_postfix({
-            "Acc": f"{acc:.2f}% ({total_correct}/{len(results_list)})",
-            "Cost": f"${Cost.instance().value:.4f}",
-            "PTokens": f"{int(PromptTokens.instance().value)}"
+            "Accuracy": f"{acc:.2f}% ({total_correct}/{len(results_list)})",
+            "Cost": f"${Cost.instance().value:.4f}"
         })
 
     return total_correct / len(results_list) * 100 if results_list else 0, results_list
@@ -241,7 +348,7 @@ async def evaluate(args, model, dataset, sentence_model, dataset_specific_info):
 
 async def main():
     args = evaluate_args()
-
+    args.llm_name = 'gpt-4o-mini'
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -257,6 +364,7 @@ async def main():
     model = OFAModel(args, role_embeddings).to(device)
     try:
         checkpoint = torch.load(args.model_path, map_location=device)
+
         if 'role_embeddings' in checkpoint:
             checkpoint.pop('role_embeddings')
         model.load_state_dict(checkpoint, strict=False)
@@ -269,6 +377,7 @@ async def main():
 
     all_dataset_logs = {}
 
+    args.dataset = ['gaia_level_1', 'gaia_level_2', 'gaia_level_3']
     for dataset_name in args.dataset:
         print("\n" + "#"*60)
         print(f"### EVALUATING ON: {dataset_name.upper()} ###")
@@ -325,4 +434,4 @@ async def main():
 if __name__ == '__main__':
     if sys.platform == "win32":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    asyncio.run(main())
+    asyncio.run(main()) 

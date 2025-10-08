@@ -19,7 +19,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 from experiment.OFA.utils import get_kwargs, Accuracy
 from datasets.mmlu_dataset import MMLUDataset
 from datasets.MMLU.download import download
-from GDesigner.graph.graph import Graph, TestGraph
+from mas_framework.graph.graph import Graph, TestGraph
 from experiment.OFA.uni_role import ROLE_DESCRIPTION
 
 

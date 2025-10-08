@@ -15,9 +15,9 @@ sys.stdout.reconfigure(encoding='utf-8')
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
-from GDesigner.graph.graph import Graph, TestGraph
-from GDesigner.tools.reader.readers import JSONLReader
-from GDesigner.tools.coding.python_executor import PyExecutor
+from mas_framework.graph.graph import Graph, TestGraph
+from mas_framework.tools.reader.readers import JSONLReader
+from mas_framework.tools.coding.python_executor import PyExecutor
 from experiment.OFA.utils import get_kwargs
 from experiment.OFA.uni_role import ROLE_DESCRIPTION
 

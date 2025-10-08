@@ -15,8 +15,8 @@ import torch
 sys.stdout.reconfigure(encoding='utf-8')
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
-from GDesigner.graph.graph import Graph, TestGraph
-from GDesigner.tools.reader.readers import JSONReader
+from mas_framework.graph.graph import Graph, TestGraph
+from mas_framework.tools.reader.readers import JSONReader
 from experiment.OFA.utils import get_kwargs
 from datasets.gsm8k_dataset import multiarith_data_process, gsm_get_predict
 from experiment.OFA.uni_role import ROLE_DESCRIPTION
