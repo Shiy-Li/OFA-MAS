@@ -41,7 +41,6 @@ def base_args():
                         help='Number of layers in the MAGNet GNN.')
 
     parser.add_argument('--lambda_graph', type=float, default=1.0, help='Weight for graph generation loss.')
-    parser.add_argument('--lambda_vae', type=float, default=0.1, help='Weight for VAE loss.')
     parser.add_argument('--lambda_balance', type=float, default=0.2, help='Weight for MoE balance loss.')
     parser.add_argument('--lambda_gate_l1', type=float, default=0.1, help='Weight for MAGNet gate L1 sparsity loss.')
     parser.add_argument('--beta_vae_anneal_epochs', type=int, default=50,
